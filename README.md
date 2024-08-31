@@ -1,5 +1,5 @@
 # Overview
-MusicBox is a macOS desktop application for organizing a music library and playing audio files. Designed to provide a clean UI for viewing and managing a music library.
+MusicBox is a macOS desktop application for organizing a music library and playing audio files. Designed to provide a clean UI for viewing and managing a music library on macOS.
 
 Features so far:
 - ability to play/pause, skip track, go back to previous track, control volume, and seeking using the progress bar
@@ -21,6 +21,7 @@ Features for future consideration:
 - 3-band EQ, crossfading, and gapless playback
 - optimization and further polish
 - supporting more audio formats
+- customizing layout/background/theme
 
 # Resources
 https://docs.swift.org/swift-book/documentation/the-swift-programming-language/
