@@ -1,5 +1,6 @@
 My favorite links:
 https://docs.swift.org/swift-book/documentation/the-swift-programming-language/
+
 https://developer.apple.com/documentation/swift/
 https://developer.apple.com/documentation/swiftui/
 https://developer.apple.com/documentation/foundation/
