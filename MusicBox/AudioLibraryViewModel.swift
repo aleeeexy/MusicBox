@@ -21,7 +21,12 @@ class AudioLibraryViewModel: ObservableObject {
     @Published var isPlaying = false
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 0
-    @Published var volume: Float = 0.5
+    @Published var volume: Float = UserDefaults.standard.float(forKey: "playerVolume") {
+        didSet {
+            player?.volume = volume
+            UserDefaults.standard.set(volume, forKey: "playerVolume")
+        }
+    }
     @Published var queue: [Track] = []
 
     private let fileManager = FileManager.default
@@ -29,11 +34,21 @@ class AudioLibraryViewModel: ObservableObject {
     private var player: AVPlayer?
     private var timeObserver: Any?
 
+    func setVolume(_ newVolume: Float) {
+        volume = max(0, min(1, newVolume))
+    }
+    
+    /**
+     sets user's music folder
+     */
     func setMusicFolder(_ url: URL) {
         musicFolderURL = url
         UserDefaults.standard.set(url.path, forKey: "MusicFolderURL")
     }
     
+    /**
+        
+     */
     func loadMusicFolder() {
         if let savedURLString = UserDefaults.standard.string(forKey: "MusicFolderURL") {
             musicFolderURL = URL(fileURLWithPath: savedURLString)
@@ -42,6 +57,7 @@ class AudioLibraryViewModel: ObservableObject {
             }
         }
     }
+    
     
     func addFilesToLibrary(urls: [URL]) {
         Task {
@@ -133,6 +149,8 @@ class AudioLibraryViewModel: ObservableObject {
         albumArtists.sort { $0.name < $1.name }
     }
 
+    private var isFirstPlay = true
+
     func play(_ track: Track) {
         currentTrack = track
         selectedAlbum = findAlbumForTrack(track)
@@ -145,14 +163,15 @@ class AudioLibraryViewModel: ObservableObject {
             player?.pause()
             player?.replaceCurrentItem(with: playerItem)
             
-            guard let player = player else {
+            if player == nil {
                 player = AVPlayer(playerItem: playerItem)
+            }
+            
+            guard let player = player else {
                 throw NSError(domain: "AudioPlayerError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create AVPlayer"])
             }
             
             player.volume = volume
-            player.play()
-            isPlaying = true
             
             setupTimeObserver()
             
@@ -161,6 +180,18 @@ class AudioLibraryViewModel: ObservableObject {
                     let duration = try await playerItem.asset.load(.duration)
                     await MainActor.run {
                         self.duration = duration.seconds
+                    }
+                    
+                    // Only start playing after we've loaded the duration
+                    if isFirstPlay {
+                        isFirstPlay = false
+                        await MainActor.run {
+                            self.isPlaying = true
+                            player.play()
+                        }
+                    } else {
+                        player.play()
+                        self.isPlaying = true
                     }
                 } catch {
                     print("Error loading track duration: \(error)")
@@ -216,11 +247,7 @@ class AudioLibraryViewModel: ObservableObject {
     func seek(to time: TimeInterval) {
         player?.seek(to: CMTime(seconds: time, preferredTimescale: 600))
     }
-    
-    func setVolume(_ newVolume: Float) {
-        volume = newVolume
-        player?.volume = newVolume
-    }
+
 
     func nextTrack() {
         if let nextTrack = queue.first {
@@ -285,6 +312,12 @@ class AudioLibraryViewModel: ObservableObject {
     
     init() {
         setupDeinitHandler()
+        // Initialize volume from UserDefaults, or use a default value if not set
+        if UserDefaults.standard.object(forKey: "playerVolume") == nil {
+            UserDefaults.standard.set(0.5, forKey: "playerVolume")
+        }
+        volume = UserDefaults.standard.float(forKey: "playerVolume")
+        isFirstPlay = true
     }
 
     private func setupDeinitHandler() {

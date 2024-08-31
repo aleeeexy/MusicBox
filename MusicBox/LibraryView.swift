@@ -134,7 +134,7 @@ struct PlaybackControlsView: View {
                     .font(.headline)
                 Spacer()
             }
-            HStack {
+            HStack(spacing: 10) {
                 Button(action: viewModel.previousTrack) {
                     Image(systemName: "backward.fill")
                 }
@@ -144,16 +144,27 @@ struct PlaybackControlsView: View {
                 Button(action: viewModel.nextTrack) {
                     Image(systemName: "forward.fill")
                 }
+                
+                // Progress slider
                 Slider(value: $viewModel.currentTime, in: 0...viewModel.duration) { editing in
                     if !editing {
                         viewModel.seek(to: viewModel.currentTime)
                     }
                 }
+                
                 Text(formatDuration(viewModel.currentTime))
                 Text(formatDuration(viewModel.duration))
+                
+                // Volume control
+                Image(systemName: "speaker.fill")
+                    .foregroundColor(.secondary)
+                Slider(value: $viewModel.volume, in: 0...1)
+                    .frame(width: 80)
+                Image(systemName: "speaker.wave.3.fill")
+                    .foregroundColor(.secondary)
             }
-            .padding()
         }
+        .padding()
     }
     
     private func formatDuration(_ duration: TimeInterval) -> String {
