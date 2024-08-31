@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		7B1FAD072C82F30C00C0B40F /* MusicBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD062C82F30C00C0B40F /* MusicBoxApp.swift */; };
-		7B1FAD092C82F30C00C0B40F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD082C82F30C00C0B40F /* ContentView.swift */; };
 		7B1FAD0B2C82F30D00C0B40F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD0A2C82F30D00C0B40F /* Assets.xcassets */; };
 		7B1FAD0E2C82F30D00C0B40F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD0D2C82F30D00C0B40F /* Preview Assets.xcassets */; };
 		7B1FAD102C82F30D00C0B40F /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD0F2C82F30D00C0B40F /* Persistence.swift */; };
@@ -16,6 +15,13 @@
 		7B1FAD1E2C82F30D00C0B40F /* MusicBoxTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD1D2C82F30D00C0B40F /* MusicBoxTests.swift */; };
 		7B1FAD282C82F30D00C0B40F /* MusicBoxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD272C82F30D00C0B40F /* MusicBoxUITests.swift */; };
 		7B1FAD2A2C82F30D00C0B40F /* MusicBoxUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD292C82F30D00C0B40F /* MusicBoxUITestsLaunchTests.swift */; };
+		7B1FAD372C82FA9D00C0B40F /* AudioLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD362C82FA9D00C0B40F /* AudioLibraryViewModel.swift */; };
+		7B1FAD3B2C8328AD00C0B40F /* 01 Like Weeds.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD3A2C8328AD00C0B40F /* 01 Like Weeds.mp3 */; };
+		7B1FAD3E2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD3C2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 */; };
+		7B1FAD3F2C8380D400C0B40F /* 03 Paranoia Secured.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD3D2C8380D400C0B40F /* 03 Paranoia Secured.mp3 */; };
+		7B1FAD412C8386DF00C0B40F /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD402C8386DF00C0B40F /* LibraryView.swift */; };
+		7B1FAD432C8386FE00C0B40F /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD422C8386FE00C0B40F /* PreferencesView.swift */; };
+		7B1FAD462C8387F900C0B40F /* ID3TagEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 7B1FAD452C8387F900C0B40F /* ID3TagEditor */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -38,7 +44,6 @@
 /* Begin PBXFileReference section */
 		7B1FAD032C82F30C00C0B40F /* MusicBox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MusicBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B1FAD062C82F30C00C0B40F /* MusicBoxApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBoxApp.swift; sourceTree = "<group>"; };
-		7B1FAD082C82F30C00C0B40F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		7B1FAD0A2C82F30D00C0B40F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7B1FAD0D2C82F30D00C0B40F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		7B1FAD0F2C82F30D00C0B40F /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
@@ -49,6 +54,12 @@
 		7B1FAD232C82F30D00C0B40F /* MusicBoxUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MusicBoxUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B1FAD272C82F30D00C0B40F /* MusicBoxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBoxUITests.swift; sourceTree = "<group>"; };
 		7B1FAD292C82F30D00C0B40F /* MusicBoxUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBoxUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		7B1FAD362C82FA9D00C0B40F /* AudioLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLibraryViewModel.swift; sourceTree = "<group>"; };
+		7B1FAD3A2C8328AD00C0B40F /* 01 Like Weeds.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "01 Like Weeds.mp3"; sourceTree = "<group>"; };
+		7B1FAD3C2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "02 Monuments To Thieves.mp3"; sourceTree = "<group>"; };
+		7B1FAD3D2C8380D400C0B40F /* 03 Paranoia Secured.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "03 Paranoia Secured.mp3"; sourceTree = "<group>"; };
+		7B1FAD402C8386DF00C0B40F /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		7B1FAD422C8386FE00C0B40F /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +67,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B1FAD462C8387F900C0B40F /* ID3TagEditor in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,8 +111,13 @@
 		7B1FAD052C82F30C00C0B40F /* MusicBox */ = {
 			isa = PBXGroup;
 			children = (
+				7B1FAD422C8386FE00C0B40F /* PreferencesView.swift */,
+				7B1FAD402C8386DF00C0B40F /* LibraryView.swift */,
+				7B1FAD3C2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 */,
+				7B1FAD3D2C8380D400C0B40F /* 03 Paranoia Secured.mp3 */,
+				7B1FAD3A2C8328AD00C0B40F /* 01 Like Weeds.mp3 */,
+				7B1FAD362C82FA9D00C0B40F /* AudioLibraryViewModel.swift */,
 				7B1FAD062C82F30C00C0B40F /* MusicBoxApp.swift */,
-				7B1FAD082C82F30C00C0B40F /* ContentView.swift */,
 				7B1FAD0A2C82F30D00C0B40F /* Assets.xcassets */,
 				7B1FAD0F2C82F30D00C0B40F /* Persistence.swift */,
 				7B1FAD142C82F30D00C0B40F /* MusicBox.entitlements */,
@@ -151,6 +168,9 @@
 			dependencies = (
 			);
 			name = MusicBox;
+			packageProductDependencies = (
+				7B1FAD452C8387F900C0B40F /* ID3TagEditor */,
+			);
 			productName = MusicBox;
 			productReference = 7B1FAD032C82F30C00C0B40F /* MusicBox.app */;
 			productType = "com.apple.product-type.application";
@@ -223,6 +243,9 @@
 				Base,
 			);
 			mainGroup = 7B1FACFA2C82F30C00C0B40F;
+			packageReferences = (
+				7B1FAD442C8387F900C0B40F /* XCRemoteSwiftPackageReference "ID3TagEditor" */,
+			);
 			productRefGroup = 7B1FAD042C82F30C00C0B40F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -239,7 +262,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B1FAD3F2C8380D400C0B40F /* 03 Paranoia Secured.mp3 in Resources */,
+				7B1FAD3E2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 in Resources */,
 				7B1FAD0E2C82F30D00C0B40F /* Preview Assets.xcassets in Resources */,
+				7B1FAD3B2C8328AD00C0B40F /* 01 Like Weeds.mp3 in Resources */,
 				7B1FAD0B2C82F30D00C0B40F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -265,8 +291,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7B1FAD412C8386DF00C0B40F /* LibraryView.swift in Sources */,
 				7B1FAD102C82F30D00C0B40F /* Persistence.swift in Sources */,
-				7B1FAD092C82F30C00C0B40F /* ContentView.swift in Sources */,
+				7B1FAD372C82FA9D00C0B40F /* AudioLibraryViewModel.swift in Sources */,
+				7B1FAD432C8386FE00C0B40F /* PreferencesView.swift in Sources */,
 				7B1FAD072C82F30C00C0B40F /* MusicBoxApp.swift in Sources */,
 				7B1FAD132C82F30D00C0B40F /* MusicBox.xcdatamodeld in Sources */,
 			);
@@ -576,6 +604,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7B1FAD442C8387F900C0B40F /* XCRemoteSwiftPackageReference "ID3TagEditor" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/chicio/ID3TagEditor";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7B1FAD452C8387F900C0B40F /* ID3TagEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7B1FAD442C8387F900C0B40F /* XCRemoteSwiftPackageReference "ID3TagEditor" */;
+			productName = ID3TagEditor;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCVersionGroup section */
 		7B1FAD112C82F30D00C0B40F /* MusicBox.xcdatamodeld */ = {

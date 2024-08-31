@@ -9,12 +9,34 @@ import SwiftUI
 
 @main
 struct MusicBoxApp: App {
-    let persistenceController = PersistenceController.shared
-
+    @StateObject private var libraryViewModel = AudioLibraryViewModel()
+    @State private var isShowingPreferences = false
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
+            LibraryView()
+                .environmentObject(libraryViewModel)
         }
+        .commands {
+            CommandMenu("File") {
+                Button("Scan Folder for New Files") {
+                    Task {
+                        await libraryViewModel.scanFolder()
+                    }
+                }
+            }
+            
+            CommandGroup(after: .appSettings) {
+                Button("Preferences") {
+                    isShowingPreferences = true
+                }
+            }
+        }
+        
+        Window("Preferences", id: "preferences") {
+            PreferencesView(viewModel: libraryViewModel)
+        }
+        .windowStyle(HiddenTitleBarWindowStyle())
+        .defaultSize(width: 300, height: 150)
     }
 }
