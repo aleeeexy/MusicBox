@@ -38,3 +38,5 @@ https://developer.apple.com/documentation/avfoundation/
 
 https://github.com/chicio/ID3TagEditor
 
+https://id3tageditor.fabrizioduroni.it/Classes/ID3TagContentReader.html
+
