@@ -2,6 +2,8 @@ My favorite links:
 
 https://docs.swift.org/swift-book/documentation/the-swift-programming-language/
 
+https://docs.swift.org/swift-book/documentation/the-swift-programming-language/concurrency/
+
 https://developer.apple.com/documentation/swift/
 
 https://developer.apple.com/documentation/swiftui/
