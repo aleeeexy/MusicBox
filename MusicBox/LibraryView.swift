@@ -11,20 +11,41 @@ struct LibraryView: View {
     @StateObject private var viewModel = AudioLibraryViewModel()
     @State private var isShowingFilePicker = false
     @State private var errorMessage: ErrorMessage?
+    @State private var selectedArtist: AlbumArtist?
     
     var body: some View {
         VStack {
             NavigationView {
-                List(viewModel.albumArtists) { artist in
-                    NavigationLink(destination: AlbumListView(viewModel: viewModel, artist: artist)) {
-                        Text(artist.name)
-                    }
+                List(viewModel.albumArtists, selection: $selectedArtist) { artist in
+                    Text(artist.name)
+                        .tag(artist)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            selectedArtist = artist
+                        }
+                        .onTapGesture(count: 2) {
+                            if let firstAlbum = artist.albums.first,
+                               let firstTrack = firstAlbum.tracks.first {
+                                viewModel.play(firstTrack)
+                            }
+                        }
                 }
                 .listStyle(SidebarListStyle())
                 .frame(minWidth: 200)
                 
-                Text("Select an artist")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                if let artist = selectedArtist {
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 20) {
+                            ForEach(artist.albums) { album in
+                                AlbumView(viewModel: viewModel, album: album)
+                            }
+                        }
+                        .padding()
+                    }
+                } else {
+                    Text("Select an artist")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .frame(minWidth: 600, minHeight: 400)
             
@@ -58,67 +79,48 @@ struct LibraryView: View {
     }
 }
 
-struct AlbumListView: View {
-    @ObservedObject var viewModel: AudioLibraryViewModel
-    let artist: AlbumArtist
-    
-    var body: some View {
-        List(artist.albums) { album in
-            AlbumView(viewModel: viewModel, album: album)
-        }
-        .navigationTitle(artist.name)
-    }
-}
-
 struct AlbumView: View {
     @ObservedObject var viewModel: AudioLibraryViewModel
     let album: Album
     
     var body: some View {
-        VStack(alignment: .leading) {
-            HStack {
+        VStack {
+            Group {
                 if let artwork = album.artwork {
                     artwork
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 100, height: 100)
-                        .cornerRadius(8)
                 } else {
                     Image(systemName: "music.note")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 100, height: 100)
                         .foregroundColor(.gray)
-                        .cornerRadius(8)
                 }
-                
-                VStack(alignment: .leading) {
-                    Text(album.title).font(.headline)
-                    Text("\(album.year) · \(album.genre)").font(.subheadline)
+            }
+            .frame(width: 150, height: 150)
+            .cornerRadius(8)
+            .onTapGesture(count: 2) {
+                if let firstTrack = album.tracks.first {
+                    viewModel.play(firstTrack)
                 }
             }
             
+            Text(album.title)
+                .font(.headline)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            
+            Text("\(album.year) · \(album.genre)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .contextMenu {
             ForEach(album.tracks) { track in
-                HStack {
-                    Text("\(track.trackNumber)")
-                    Text(track.title)
-                    Spacer()
-                    Text(formatDuration(track.duration))
-                }
-                .onTapGesture {
+                Button(track.title) {
                     viewModel.play(track)
-                    viewModel.selectedAlbum = album
                 }
-                .background(viewModel.currentTrack?.id == track.id ? Color.blue.opacity(0.3) : Color.clear)
             }
         }
-        .padding()
-    }
-    
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 

@@ -9,6 +9,7 @@ import Foundation
 import AVFoundation
 import ID3TagEditor
 import SwiftUI
+import Combine
 
 @MainActor
 class AudioLibraryViewModel: ObservableObject {
@@ -21,6 +22,7 @@ class AudioLibraryViewModel: ObservableObject {
     @Published var currentTime: TimeInterval = 0
     @Published var duration: TimeInterval = 0
     @Published var volume: Float = 0.5
+    @Published var queue: [Track] = []
 
     private let fileManager = FileManager.default
     private let id3TagEditor = ID3TagEditor()
@@ -133,27 +135,65 @@ class AudioLibraryViewModel: ObservableObject {
 
     func play(_ track: Track) {
         currentTrack = track
-        let playerItem = AVPlayerItem(url: track.url)
-        player = AVPlayer(playerItem: playerItem)
-        player?.volume = volume
-        player?.play()
-        isPlaying = true
+        selectedAlbum = findAlbumForTrack(track)
+        updateQueue(startingFrom: track)
         
-        setupTimeObserver()
-        
-        Task {
-            if let duration = try? await player?.currentItem?.asset.load(.duration) {
-                self.duration = duration.seconds
+        do {
+            let playerItem = AVPlayerItem(url: track.url)
+            
+            // Stop the current player before creating a new one
+            player?.pause()
+            player?.replaceCurrentItem(with: playerItem)
+            
+            guard let player = player else {
+                player = AVPlayer(playerItem: playerItem)
+                throw NSError(domain: "AudioPlayerError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create AVPlayer"])
             }
+            
+            player.volume = volume
+            player.play()
+            isPlaying = true
+            
+            setupTimeObserver()
+            
+            Task {
+                do {
+                    let duration = try await playerItem.asset.load(.duration)
+                    await MainActor.run {
+                        self.duration = duration.seconds
+                    }
+                } catch {
+                    print("Error loading track duration: \(error)")
+                }
+            }
+            
+            NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying), name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+            NotificationCenter.default.addObserver(self, selector: #selector(playerDidFail), name: .AVPlayerItemFailedToPlayToEndTime, object: playerItem)
+            
+        } catch {
+            print("Error setting up audio playback: \(error)")
+            isPlaying = false
         }
+    }
+
+    @objc func playerDidFinishPlaying(_ notification: Notification) {
+        nextTrack()
+    }
+    
+    @objc func playerDidFail(_ notification: Notification) {
+        if let playerItem = notification.object as? AVPlayerItem,
+           let error = playerItem.error {
+            print("Player failed with error: \(error)")
+        } else {
+            print("Player failed with unknown error")
+        }
+        isPlaying = false
     }
     
     private func setupTimeObserver() {
-        Task { @MainActor in
-            removeTimeObserver()
-            timeObserver = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
-                self?.currentTime = time.seconds
-            }
+        removeTimeObserver()
+        timeObserver = player?.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.5, preferredTimescale: 600), queue: .main) { [weak self] time in
+            self?.currentTime = time.seconds
         }
     }
     
@@ -163,7 +203,7 @@ class AudioLibraryViewModel: ObservableObject {
             self.timeObserver = nil
         }
     }
-    
+
     func togglePlayPause() {
         if isPlaying {
             player?.pause()
@@ -181,41 +221,100 @@ class AudioLibraryViewModel: ObservableObject {
         volume = newVolume
         player?.volume = newVolume
     }
-    
-    func changeTrack(offset: Int) {
-        guard let currentTrack = currentTrack,
-              let currentAlbum = selectedAlbum,
-              let currentIndex = currentAlbum.tracks.firstIndex(where: { $0.id == currentTrack.id }),
-              currentAlbum.tracks.indices.contains(currentIndex + offset) else {
-            return
-        }
-        
-        play(currentAlbum.tracks[currentIndex + offset])
-    }
-    
+
     func nextTrack() {
-        changeTrack(offset: 1)
+        if let nextTrack = queue.first {
+            queue.removeFirst()
+            play(nextTrack)
+        } else {
+            // No more tracks in queue, go to first track of first album and pause
+            if let firstArtist = albumArtists.first,
+               let firstAlbum = firstArtist.albums.first,
+               let firstTrack = firstAlbum.tracks.first {
+                currentTrack = firstTrack
+                selectedAlbum = firstAlbum
+                seek(to: 0)
+                player?.pause()
+                isPlaying = false
+            }
+        }
     }
-    
+
     func previousTrack() {
-        changeTrack(offset: -1)
+        guard let currentTrack = currentTrack,
+              let currentAlbum = selectedAlbum else { return }
+        
+        if currentTime > 1 {
+            // If more than 1 second has played, go to the start of the current track
+            seek(to: 0)
+        } else {
+            // Go to the previous track
+            if let currentIndex = currentAlbum.tracks.firstIndex(where: { $0.id == currentTrack.id }),
+               currentIndex > 0 {
+                play(currentAlbum.tracks[currentIndex - 1])
+            } else {
+                // This is the first track, pause playback
+                player?.pause()
+                isPlaying = false
+                seek(to: 0)
+            }
+        }
     }
-    
+
+    private func updateQueue(startingFrom track: Track) {
+        guard let album = selectedAlbum else { return }
+        if let index = album.tracks.firstIndex(where: { $0.id == track.id }) {
+            queue = Array(album.tracks[index+1..<album.tracks.count])
+        }
+    }
+
+    private func findAlbumForTrack(_ track: Track) -> Album? {
+        for artist in albumArtists {
+            if let album = artist.albums.first(where: { $0.tracks.contains(where: { $0.id == track.id }) }) {
+                return album
+            }
+        }
+        return nil
+    }
+
     private func handleError(_ error: Error) {
         print("Error: \(error.localizedDescription)")
     }
     
+    private var cancelBag = Set<AnyCancellable>()
+    
+    init() {
+        setupDeinitHandler()
+    }
+
+    private func setupDeinitHandler() {
+        // Use SwiftUI's scene phase or other methods to handle lifecycle changes
+    }
+    
+    private func cleanup() {
+        NotificationCenter.default.removeObserver(self)
+        removeTimeObserver()
+    }
+
     deinit {
         Task { @MainActor in
-            removeTimeObserver()
+            cleanup()
         }
     }
 }
 
-struct AlbumArtist: Identifiable {
+struct AlbumArtist: Identifiable, Hashable {
     let id = UUID()
     let name: String
     var albums: [Album]
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    static func == (lhs: AlbumArtist, rhs: AlbumArtist) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct Album: Identifiable {
