@@ -1,42 +1,47 @@
-//
-//  MusicBoxApp.swift
-//  MusicBox
-//
-//  Created by Alex Yoon on 8/31/24.
-//
-
 import SwiftUI
 
 @main
 struct MusicBoxApp: App {
     @StateObject private var libraryViewModel = AudioLibraryViewModel()
     @State private var isShowingPreferences = false
-    
+
     var body: some Scene {
         WindowGroup {
-            LibraryView()
-                .environmentObject(libraryViewModel)
+            ZStack {
+                LibraryView()
+                    .environmentObject(libraryViewModel)
+                
+                if isShowingPreferences {
+                    Color.black.opacity(0.3)
+                        .edgesIgnoringSafeArea(.all)
+                        .onTapGesture {
+                            isShowingPreferences = false
+                        }
+                    
+                    PreferencesView(viewModel: libraryViewModel, isPresented: $isShowingPreferences)
+                        .frame(width: 600, height: 400)
+                        .background(Color(NSColor.windowBackgroundColor))
+                        .cornerRadius(10)
+                        .shadow(radius: 10)
+                }
+            }
         }
         .commands {
-            CommandMenu("File") {
+            CommandGroup(after: .newItem) {
                 Button("Scan Folder for New Files") {
                     Task {
                         await libraryViewModel.scanFolder()
                     }
                 }
+                .keyboardShortcut("R", modifiers: [.command, .shift])
             }
             
-            CommandGroup(after: .appSettings) {
-                Button("Preferences") {
-                    isShowingPreferences = true
+            CommandGroup(after: .textEditing) {
+                Button("Preferences...") {
+                    isShowingPreferences.toggle()
                 }
+                .keyboardShortcut(",", modifiers: .command)
             }
         }
-        
-        Window("Preferences", id: "preferences") {
-            PreferencesView(viewModel: libraryViewModel)
-        }
-        .windowStyle(HiddenTitleBarWindowStyle())
-        .defaultSize(width: 300, height: 150)
     }
 }
