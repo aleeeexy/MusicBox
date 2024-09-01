@@ -16,9 +16,6 @@
 		7B1FAD282C82F30D00C0B40F /* MusicBoxUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD272C82F30D00C0B40F /* MusicBoxUITests.swift */; };
 		7B1FAD2A2C82F30D00C0B40F /* MusicBoxUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD292C82F30D00C0B40F /* MusicBoxUITestsLaunchTests.swift */; };
 		7B1FAD372C82FA9D00C0B40F /* AudioLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD362C82FA9D00C0B40F /* AudioLibraryViewModel.swift */; };
-		7B1FAD3B2C8328AD00C0B40F /* 01 Like Weeds.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD3A2C8328AD00C0B40F /* 01 Like Weeds.mp3 */; };
-		7B1FAD3E2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD3C2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 */; };
-		7B1FAD3F2C8380D400C0B40F /* 03 Paranoia Secured.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 7B1FAD3D2C8380D400C0B40F /* 03 Paranoia Secured.mp3 */; };
 		7B1FAD412C8386DF00C0B40F /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD402C8386DF00C0B40F /* LibraryView.swift */; };
 		7B1FAD432C8386FE00C0B40F /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B1FAD422C8386FE00C0B40F /* PreferencesView.swift */; };
 		7B1FAD462C8387F900C0B40F /* ID3TagEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 7B1FAD452C8387F900C0B40F /* ID3TagEditor */; };
@@ -55,9 +52,6 @@
 		7B1FAD272C82F30D00C0B40F /* MusicBoxUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBoxUITests.swift; sourceTree = "<group>"; };
 		7B1FAD292C82F30D00C0B40F /* MusicBoxUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicBoxUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		7B1FAD362C82FA9D00C0B40F /* AudioLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioLibraryViewModel.swift; sourceTree = "<group>"; };
-		7B1FAD3A2C8328AD00C0B40F /* 01 Like Weeds.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "01 Like Weeds.mp3"; sourceTree = "<group>"; };
-		7B1FAD3C2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "02 Monuments To Thieves.mp3"; sourceTree = "<group>"; };
-		7B1FAD3D2C8380D400C0B40F /* 03 Paranoia Secured.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "03 Paranoia Secured.mp3"; sourceTree = "<group>"; };
 		7B1FAD402C8386DF00C0B40F /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		7B1FAD422C8386FE00C0B40F /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -113,9 +107,6 @@
 			children = (
 				7B1FAD422C8386FE00C0B40F /* PreferencesView.swift */,
 				7B1FAD402C8386DF00C0B40F /* LibraryView.swift */,
-				7B1FAD3C2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 */,
-				7B1FAD3D2C8380D400C0B40F /* 03 Paranoia Secured.mp3 */,
-				7B1FAD3A2C8328AD00C0B40F /* 01 Like Weeds.mp3 */,
 				7B1FAD362C82FA9D00C0B40F /* AudioLibraryViewModel.swift */,
 				7B1FAD062C82F30C00C0B40F /* MusicBoxApp.swift */,
 				7B1FAD0A2C82F30D00C0B40F /* Assets.xcassets */,
@@ -262,10 +253,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				7B1FAD3F2C8380D400C0B40F /* 03 Paranoia Secured.mp3 in Resources */,
-				7B1FAD3E2C8380D400C0B40F /* 02 Monuments To Thieves.mp3 in Resources */,
 				7B1FAD0E2C82F30D00C0B40F /* Preview Assets.xcassets in Resources */,
-				7B1FAD3B2C8328AD00C0B40F /* 01 Like Weeds.mp3 in Resources */,
 				7B1FAD0B2C82F30D00C0B40F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
