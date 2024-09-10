@@ -6,10 +6,19 @@ import Combine
 
 @MainActor
 class AudioLibraryViewModel: ObservableObject {
-    @Published var musicFolderURL: URL?
+    @Published var musicFolderURL: URL? {
+        didSet {
+            if let url = musicFolderURL {
+                saveMusicFolderURL(url)
+            }
+        }
+    }
     @Published var albumArtists: [AlbumArtist] = []
+    @Published var isScanning = false
+    @Published var scanProgress: Float = 0
+    @Published var scannedFiles: Int = 0
+    @Published var totalFiles: Int = 0
     @Published var selectedAlbumArtist: AlbumArtist?
-    @Published var selectedAlbum: Album?
     @Published var currentTrack: Track?
     @Published var isPlaying = false
     @Published var currentTime: TimeInterval = 0
@@ -21,44 +30,43 @@ class AudioLibraryViewModel: ObservableObject {
         }
     }
     @Published var queue: [Track] = []
-    @Published var isScanning = false
-    @Published var scanProgress: Float = 0
-    @Published var scannedFiles: Int = 0
-    @Published var totalFiles: Int = 0
-
+    @Published var selectedAlbum: Album?
+    
+    
     private let fileManager = FileManager.default
     private let id3TagEditor = ID3TagEditor()
     private var player: AVPlayer?
     private var timeObserver: Any?
-
+    private var processedFiles: Set<String> = []
+    
     init() {
-        if UserDefaults.standard.object(forKey: "playerVolume") == nil {
-            UserDefaults.standard.set(0.5, forKey: "playerVolume")
-        }
-        volume = UserDefaults.standard.float(forKey: "playerVolume")
+        loadMusicFolder()
+        loadLibrary()
     }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-        Task { @MainActor in
-            removeTimeObserver()
-        }
+    
+    private func saveMusicFolderURL(_ url: URL) {
+        UserDefaults.standard.set(url.path, forKey: "musicFolderURL")
     }
-
-    func setMusicFolder(_ url: URL) {
-        musicFolderURL = url
-        UserDefaults.standard.set(url.path, forKey: "MusicFolderURL")
-    }
-
+    
     func loadMusicFolder() {
-        if let savedURLString = UserDefaults.standard.string(forKey: "MusicFolderURL") {
+        if let savedURLString = UserDefaults.standard.string(forKey: "musicFolderURL") {
             musicFolderURL = URL(fileURLWithPath: savedURLString)
-            Task {
-                await scanFolder()
-            }
         }
     }
-
+    
+    private func loadLibrary() {
+        if let data = UserDefaults.standard.data(forKey: "libraryData"),
+           let decodedLibrary = try? JSONDecoder().decode([AlbumArtist].self, from: data) {
+            self.albumArtists = decodedLibrary
+        }
+    }
+    
+    private func saveLibrary() {
+        if let encodedData = try? JSONEncoder().encode(albumArtists) {
+            UserDefaults.standard.set(encodedData, forKey: "libraryData")
+        }
+    }
+    
     func scanFolder() async {
         guard let folderURL = musicFolderURL else { return }
         
@@ -68,9 +76,22 @@ class AudioLibraryViewModel: ObservableObject {
         totalFiles = 0
         
         do {
+            var existingFiles = Set(getAllTrackURLs())
+            var newFiles = Set<URL>()
+            
             totalFiles = try await countMP3Files(in: folderURL)
-            try await scanFolderRecursively(folderURL)
+            try await scanFolderRecursively(folderURL, existingFiles: &existingFiles, newFiles: &newFiles)
+            
+            // Remove tracks that no longer exist
+            removeNonexistentTracks(existingFiles)
+            
+            // Add new tracks
+            for fileURL in newFiles {
+                await processAudioFile(fileURL)
+            }
+            
             organizeLibrary()
+            saveLibrary()
             
             objectWillChange.send()
         } catch {
@@ -79,7 +100,56 @@ class AudioLibraryViewModel: ObservableObject {
         
         isScanning = false
     }
+
+    private func scanFolderRecursively(_ folderURL: URL, existingFiles: inout Set<URL>, newFiles: inout Set<URL>) async throws {
+        let fileURLs = try fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: [.isDirectoryKey])
+        
+        for fileURL in fileURLs {
+            let isDirectory = try fileURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory ?? false
+            
+            if isDirectory {
+                try await scanFolderRecursively(fileURL, existingFiles: &existingFiles, newFiles: &newFiles)
+            } else if fileURL.pathExtension.lowercased() == "mp3" {
+                if existingFiles.contains(fileURL) {
+                    existingFiles.remove(fileURL)
+                } else {
+                    newFiles.insert(fileURL)
+                }
+                scannedFiles += 1
+                scanProgress = Float(scannedFiles) / Float(totalFiles)
+            }
+        }
+    }
+
     
+    private func getAllTrackURLs() -> [URL] {
+        return albumArtists.flatMap { artist in
+            artist.albums.flatMap { album in
+                album.tracks.map { $0.url }
+            }
+        }
+    }
+    
+    private func removeNonexistentTracks(_ nonexistentURLs: Set<URL>) {
+        for artistIndex in albumArtists.indices {
+            for albumIndex in albumArtists[artistIndex].albums.indices {
+                albumArtists[artistIndex].albums[albumIndex].tracks.removeAll { track in
+                    nonexistentURLs.contains(track.url)
+                }
+            }
+            // Remove empty albums
+            albumArtists[artistIndex].albums.removeAll { $0.tracks.isEmpty }
+        }
+        // Remove empty artists
+        albumArtists.removeAll { $0.albums.isEmpty }
+    }
+
+    func setMusicFolder(_ url: URL) {
+        musicFolderURL = url
+        Task {
+            await scanFolder()
+        }
+    }
     private func scanFolderRecursively(_ folderURL: URL) async throws {
         let fileURLs = try fileManager.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: [.isDirectoryKey])
         
@@ -95,7 +165,7 @@ class AudioLibraryViewModel: ObservableObject {
             }
         }
     }
-
+    
     private func countMP3Files(in folder: URL) async throws -> Int {
         let fileURLs = try fileManager.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.isDirectoryKey])
         var count = 0
@@ -112,10 +182,16 @@ class AudioLibraryViewModel: ObservableObject {
         
         return count
     }
-
+    
     private func processAudioFile(_ url: URL) async {
+        let filePath = url.path
+        
+        // Check if the file has already been processed
+        if processedFiles.contains(filePath) {
+            return
+        }
+        
         do {
-            let filePath = url.path
             guard let id3Tag = try id3TagEditor.read(from: filePath) else { return }
             
             let albumArtist = (id3Tag.frames[.albumArtist] as? ID3FrameWithStringContent)?.content ?? "Unknown Artist"
@@ -130,24 +206,17 @@ class AudioLibraryViewModel: ObservableObject {
             
             let artwork = loadArtwork(from: id3Tag)
             
-            let track = Track(url: url, title: title, trackNumber: trackPosition, duration: duration)
+            let track = Track(url: url, title: title, artist: albumArtist, trackNumber: trackPosition, duration: duration)
             
             updateLibrary(albumArtist: albumArtist, album: album, year: year, genre: genre, track: track, artwork: artwork)
+            
+            // Mark the file as processed
+            processedFiles.insert(filePath)
         } catch {
             print("Error processing audio file: \(error.localizedDescription)")
         }
     }
-
-    func addFilesToLibrary(urls: [URL]) {
-        Task {
-            for url in urls where url.pathExtension.lowercased() == "mp3" {
-                await processAudioFile(url)
-            }
-            organizeLibrary()
-            objectWillChange.send()
-        }
-    }
-
+    
     private func loadArtwork(from id3Tag: ID3Tag) -> Image? {
         guard let attachedPictureFrame = id3Tag.frames[.attachedPicture(.frontCover)] as? ID3FrameAttachedPicture,
               let nsImage = NSImage(data: attachedPictureFrame.picture) else {
@@ -155,11 +224,13 @@ class AudioLibraryViewModel: ObservableObject {
         }
         return Image(nsImage: nsImage)
     }
-
+    
     private func updateLibrary(albumArtist: String, album: String, year: Int, genre: String, track: Track, artwork: Image?) {
         if let existingArtistIndex = albumArtists.firstIndex(where: { $0.name == albumArtist }) {
             if let existingAlbumIndex = albumArtists[existingArtistIndex].albums.firstIndex(where: { $0.title == album }) {
-                albumArtists[existingArtistIndex].albums[existingAlbumIndex].tracks.append(track)
+                if !albumArtists[existingArtistIndex].albums[existingAlbumIndex].tracks.contains(where: { $0.url == track.url }) {
+                    albumArtists[existingArtistIndex].albums[existingAlbumIndex].tracks.append(track)
+                }
             } else {
                 let newAlbum = Album(title: album, year: year, genre: genre, tracks: [track], artwork: artwork)
                 albumArtists[existingArtistIndex].albums.append(newAlbum)
@@ -170,7 +241,7 @@ class AudioLibraryViewModel: ObservableObject {
             albumArtists.append(newArtist)
         }
     }
-
+    
     private func organizeLibrary() {
         for artistIndex in albumArtists.indices {
             albumArtists[artistIndex].albums.sort { $0.year != $1.year ? $0.year > $1.year : $0.title < $1.title }
@@ -182,12 +253,14 @@ class AudioLibraryViewModel: ObservableObject {
         
         albumArtists.sort { $0.name < $1.name }
     }
-
+    
     func play(_ track: Track) {
         currentTrack = track
-        selectedAlbum = findAlbumForTrack(track)
+        Task {
+            selectedAlbum = await findAlbumForTrack(track)
+        }
         updateQueue(startingFrom: track)
-        
+
         do {
             let playerItem = AVPlayerItem(url: track.url)
             
@@ -206,22 +279,19 @@ class AudioLibraryViewModel: ObservableObject {
             
             setupTimeObserver()
             
+            // Use a continuation to handle the async call
             Task {
-                do {
-                    let duration = try await playerItem.asset.load(.duration)
-                    await MainActor.run {
-                        self.duration = duration.seconds
-                    }
-                    
-                    player.play()
-                    self.isPlaying = true
-                } catch {
-                    print("Error loading track duration: \(error)")
+                let duration = try await playerItem.asset.load(.duration)
+                await MainActor.run {
+                    self.duration = duration.seconds
                 }
             }
             
-            NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying), name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
-            NotificationCenter.default.addObserver(self, selector: #selector(playerDidFail), name: .AVPlayerItemFailedToPlayToEndTime, object: playerItem)
+            player.play()
+            self.isPlaying = true
+            
+            NotificationCenter.default.addObserver(self, selector: #selector(playerDidFinishPlaying(_:)), name: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+            NotificationCenter.default.addObserver(self, selector: #selector(playerDidFail(_:)), name: .AVPlayerItemFailedToPlayToEndTime, object: playerItem)
             
         } catch {
             print("Error setting up audio playback: \(error)")
@@ -229,10 +299,49 @@ class AudioLibraryViewModel: ObservableObject {
         }
     }
 
+    private func findAlbumForTrack(_ track: Track) async -> Album? {
+        for artist in albumArtists {
+            if let album = artist.albums.first(where: { $0.tracks.contains(where: { $0.id == track.id }) }) {
+                return album
+            }
+        }
+        return nil  // Changed 'null' to 'nil'
+    }
+
     @objc func playerDidFinishPlaying(_ notification: Notification) {
-        nextTrack()
+        Task {
+            await nextTrack()
+        }
+    }
+
+    func nextTrack() {
+        if let nextTrack = queue.first {
+            queue.removeFirst()
+            play(nextTrack)
+        } else {
+            // No more tracks in queue, go to first track of first album and pause
+            if let firstArtist = albumArtists.first,
+               let firstAlbum = firstArtist.albums.first,
+               let firstTrack = firstAlbum.tracks.first {
+                currentTrack = firstTrack
+                Task {
+                    selectedAlbum = await findAlbumForTrack(firstTrack)
+                }
+                seek(to: 0)
+                player?.pause()
+                isPlaying = false
+            }
+        }
     }
     
+    func addFilesToLibrary(urls: [URL]) async {
+        for url in urls where url.pathExtension.lowercased() == "mp3" {
+            await processAudioFile(url)
+        }
+        organizeLibrary()
+        objectWillChange.send()
+    }
+
     @objc func playerDidFail(_ notification: Notification) {
         if let playerItem = notification.object as? AVPlayerItem,
            let error = playerItem.error {
@@ -256,35 +365,12 @@ class AudioLibraryViewModel: ObservableObject {
             self.timeObserver = nil
         }
     }
-
-    func togglePlayPause() {
-        isPlaying ? player?.pause() : player?.play()
-        isPlaying.toggle()
-    }
     
     func seek(to time: TimeInterval) {
         player?.seek(to: CMTime(seconds: time, preferredTimescale: 600))
     }
-
-    func nextTrack() {
-        if let nextTrack = queue.first {
-            queue.removeFirst()
-            play(nextTrack)
-        } else {
-            // No more tracks in queue, go to first track of first album and pause
-            if let firstArtist = albumArtists.first,
-               let firstAlbum = firstArtist.albums.first,
-               let firstTrack = firstAlbum.tracks.first {
-                currentTrack = firstTrack
-                selectedAlbum = firstAlbum
-                seek(to: 0)
-                player?.pause()
-                isPlaying = false
-            }
-        }
-    }
-
-    func previousTrack() {
+        
+    func previousTrack() async {
         guard let currentTrack = currentTrack,
               let currentAlbum = selectedAlbum else { return }
         
@@ -295,7 +381,7 @@ class AudioLibraryViewModel: ObservableObject {
             // Go to the previous track
             if let currentIndex = currentAlbum.tracks.firstIndex(where: { $0.id == currentTrack.id }),
                currentIndex > 0 {
-                play(currentAlbum.tracks[currentIndex - 1])
+                await play(currentAlbum.tracks[currentIndex - 1])
             } else {
                 // This is the first track, pause playback
                 player?.pause()
@@ -304,7 +390,20 @@ class AudioLibraryViewModel: ObservableObject {
             }
         }
     }
-
+    
+    func togglePlayPause() async {
+        if isPlaying {
+            player?.pause()
+            isPlaying = false
+        } else {
+            if let currentTrack = currentTrack {
+                await play(currentTrack)
+            } else if let firstTrack = queue.first {
+                await play(firstTrack)
+            }
+        }
+    }
+    
     private func updateQueue(startingFrom track: Track) {
         guard let album = selectedAlbum else { return }
         if let index = album.tracks.firstIndex(where: { $0.id == track.id }) {
@@ -312,18 +411,16 @@ class AudioLibraryViewModel: ObservableObject {
         }
     }
 
-    private func findAlbumForTrack(_ track: Track) -> Album? {
-        for artist in albumArtists {
-            if let album = artist.albums.first(where: { $0.tracks.contains(where: { $0.id == track.id }) }) {
-                return album
-            }
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        Task { @MainActor in
+            removeTimeObserver()
         }
-        return nil
     }
 }
 
-struct AlbumArtist: Identifiable, Hashable {
-    let id = UUID()
+struct AlbumArtist: Identifiable, Hashable, Codable {
+    let id: UUID
     let name: String
     var albums: [Album]
     
@@ -334,10 +431,20 @@ struct AlbumArtist: Identifiable, Hashable {
     static func == (lhs: AlbumArtist, rhs: AlbumArtist) -> Bool {
         lhs.id == rhs.id
     }
+    
+    enum CodingKeys: String, CodingKey {
+        case id, name, albums
+    }
+    
+    init(id: UUID = UUID(), name: String, albums: [Album]) {
+        self.id = id
+        self.name = name
+        self.albums = albums
+    }
 }
 
-class Album: Identifiable, ObservableObject {
-    let id = UUID()
+class Album: Identifiable, ObservableObject, Codable {
+    let id: UUID
     let title: String
     let year: Int
     let genre: String
@@ -345,19 +452,58 @@ class Album: Identifiable, ObservableObject {
     let artwork: Image?
     @Published var selectedTracks: Set<UUID> = []
 
-    init(title: String, year: Int, genre: String, tracks: [Track], artwork: Image?) {
+    enum CodingKeys: String, CodingKey {
+        case id, title, year, genre, tracks, artwork
+    }
+
+    init(id: UUID = UUID(), title: String, year: Int, genre: String, tracks: [Track], artwork: Image?) {
+        self.id = id
         self.title = title
         self.year = year
         self.genre = genre
         self.tracks = tracks
         self.artwork = artwork
     }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        year = try container.decode(Int.self, forKey: .year)
+        genre = try container.decode(String.self, forKey: .genre)
+        tracks = try container.decode([Track].self, forKey: .tracks)
+        artwork = nil // We can't decode Image, so we'll set it to nil when decoding
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encode(year, forKey: .year)
+        try container.encode(genre, forKey: .genre)
+        try container.encode(tracks, forKey: .tracks)
+        // We can't encode Image, so we'll skip it
+    }
 }
 
-struct Track: Identifiable {
-    let id = UUID()
+struct Track: Identifiable, Codable {
+    let id: UUID
     let url: URL
     let title: String
+    let artist: String
     let trackNumber: Int
     let duration: TimeInterval
+    
+    enum CodingKeys: String, CodingKey {
+        case id, url, title, artist, trackNumber, duration
+    }
+    
+    init(id: UUID = UUID(), url: URL, title: String, artist: String, trackNumber: Int, duration: TimeInterval) {
+        self.id = id
+        self.url = url
+        self.title = title
+        self.artist = artist
+        self.trackNumber = trackNumber
+        self.duration = duration
+    }
 }

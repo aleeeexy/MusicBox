@@ -30,7 +30,7 @@ struct MusicBoxApp: App {
             CommandGroup(after: .newItem) {
                 Button("Scan Folder for New Files") {
                     Task {
-                        await libraryViewModel.scanFolder()
+                        await scanFolder()
                     }
                 }
                 .keyboardShortcut("R", modifiers: [.command, .shift])
@@ -43,5 +43,9 @@ struct MusicBoxApp: App {
                 .keyboardShortcut(",", modifiers: .command)
             }
         }
+    }
+    
+    private func scanFolder() async {
+        await libraryViewModel.scanFolder()
     }
 }

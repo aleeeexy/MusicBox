@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct LibraryView: View {
-    @StateObject private var viewModel = AudioLibraryViewModel()
+    @EnvironmentObject private var viewModel: AudioLibraryViewModel
     @State private var isShowingFilePicker = false
     @State private var errorMessage: ErrorMessage?
     @State private var selectedArtist: AlbumArtist?
@@ -18,7 +18,6 @@ struct LibraryView: View {
             PlaybackControlsView(viewModel: viewModel)
         }
         .frame(minWidth: 800, minHeight: 600)
-        .onAppear { viewModel.loadMusicFolder() }
         .toolbar { toolbarContent }
         .fileImporter(isPresented: $isShowingFilePicker, allowedContentTypes: [.audio], allowsMultipleSelection: true, onCompletion: handleFileImport)
         .alert(item: $errorMessage) { message in
@@ -58,16 +57,30 @@ struct LibraryView: View {
     }
     
     private var scanningView: some View {
-        VStack {
-            ProgressView(value: viewModel.scanProgress) {
-                Text("Scanning for new files...")
-            } currentValueLabel: {
-                Text("\(viewModel.scannedFiles) / \(viewModel.totalFiles)")
+        VStack(spacing: 20) {
+            Text("Scanning for new files...")
+                .font(.headline)
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.3))
+                    
+                    Rectangle()
+                        .fill(Color.blue)
+                        .frame(width: geometry.size.width * CGFloat(viewModel.scanProgress))
+                }
             }
-            .progressViewStyle(LinearProgressViewStyle())
-            .padding()
+            .frame(height: 20)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, 40)
+            
+            Text("\(viewModel.scannedFiles) / \(viewModel.totalFiles)")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(NSColor.windowBackgroundColor))
     }
     
     private func artistView(_ artist: AlbumArtist) -> some View {
@@ -112,21 +125,22 @@ struct LibraryView: View {
                 }) {
                     Label("Scan for New Files", systemImage: "arrow.clockwise")
                 }
-                .disabled(viewModel.isScanning)
+                .disabled(viewModel.musicFolderURL == nil || viewModel.isScanning)
             }
         }
     }
-    
+
     private func handleFileImport(_ result: Result<[URL], Error>) {
         do {
             let selectedFiles = try result.get()
-            viewModel.addFilesToLibrary(urls: selectedFiles)
+            Task {
+                await viewModel.addFilesToLibrary(urls: selectedFiles)
+            }
         } catch {
             errorMessage = ErrorMessage(content: "Error selecting files: \(error.localizedDescription)")
         }
     }
 }
-
 struct ArtistRowView: View {
     let artist: AlbumArtist
     @ObservedObject var viewModel: AudioLibraryViewModel
@@ -254,11 +268,13 @@ struct TrackRowView: View {
     
     var body: some View {
         HStack {
-            Text("\(track.trackNumber)")
-                .frame(width: 30, alignment: .trailing)
             if isTrackPlaying(track) {
                 Image(systemName: viewModel.isPlaying ? "speaker.wave.2.fill" : "speaker.fill")
                     .foregroundColor(.blue)
+                    .frame(width: 30, alignment: .trailing)
+            } else {
+                Text("\(track.trackNumber)")
+                    .frame(width: 30, alignment: .trailing)
             }
             Text(track.title)
             Spacer()
@@ -324,16 +340,26 @@ struct PlaybackControlsView: View {
                 Spacer()
             }
             HStack(spacing: 10) {
-                Button(action: viewModel.previousTrack) {
+                Button(action: {
+                    Task {
+                        await viewModel.previousTrack()
+                    }
+                }) {
                     Image(systemName: "backward.fill")
                 }
-                Button(action: viewModel.togglePlayPause) {
+                Button(action: {
+                    Task {
+                        await viewModel.togglePlayPause()
+                    }
+                }) {
                     Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
                 }
-                Button(action: viewModel.nextTrack) {
+                Button(action: {
+                    viewModel.nextTrack()
+                }) {
                     Image(systemName: "forward.fill")
                 }
-                
+
                 Slider(value: $viewModel.currentTime, in: 0...viewModel.duration) { editing in
                     if !editing {
                         viewModel.seek(to: viewModel.currentTime)

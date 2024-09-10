@@ -3,20 +3,24 @@ import SwiftUI
 struct PreferencesView: View {
     @ObservedObject var viewModel: AudioLibraryViewModel
     @Binding var isPresented: Bool
-    @State private var selectedSidebarItem: String? = "Library"
+    @State private var selectedSidebarItem: String = "Library"
     
     var body: some View {
-        NavigationView {
-            List {
-                NavigationLink(destination: LibraryPreferencesView(viewModel: viewModel), tag: "Library", selection: $selectedSidebarItem) {
-                    Label("Library", systemImage: "music.note.list")
-                }
+        NavigationSplitView {
+            List(selection: $selectedSidebarItem) {
+                NavigationLink("Library", value: "Library")
+                    .tag("Library")
                 // Add more sidebar items here in the future
             }
             .listStyle(SidebarListStyle())
             .frame(minWidth: 150, idealWidth: 250, maxWidth: 300)
-            
-            LibraryPreferencesView(viewModel: viewModel)
+        } detail: {
+            switch selectedSidebarItem {
+            case "Library":
+                LibraryPreferencesView(viewModel: viewModel)
+            default:
+                Text("Select an item")
+            }
         }
         .navigationTitle("Preferences")
         .toolbar {
